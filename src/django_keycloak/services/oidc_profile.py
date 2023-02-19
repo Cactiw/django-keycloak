@@ -228,7 +228,7 @@ def _update_or_create(client, token_response, initiate_time):
         access_token=token_response["access_token"], # modified to fix the issue https://github.com/Peter-Slump/django-keycloak/issues/57
     )
     access_token_s = token_response["access_token"].split('.')[1]
-    auth_token_object = json.loads(base64.b64decode(access_token_s + b'=' * (-len(access_token_s) % 4)))
+    auth_token_object = json.loads(base64.b64decode(access_token_s + '=' * (-len(access_token_s) % 4)))
 
     oidc_profile = update_or_create_user_and_oidc_profile(
         client=client,
