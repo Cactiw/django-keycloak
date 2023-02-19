@@ -1,5 +1,6 @@
 import logging
 
+import keycloak.exceptions
 from django.contrib.auth.models import Permission
 from requests.exceptions import HTTPError
 
@@ -24,7 +25,9 @@ def synchronize(client):
         try:
             role_api.create(name=permission.codename,
                             description=permission.name)
-        except HTTPError as e:
+        except (HTTPError, keycloak.exceptions.KeycloakClientError) as e:
+            if isinstance(e, keycloak.exceptions.KeycloakClientError):
+                e = e.original_exc
             if e.response.status_code != 409:
                 raise
 
