@@ -1,3 +1,5 @@
+import base64
+import json
 from datetime import timedelta
 
 import logging
@@ -75,11 +77,12 @@ def get_or_create_from_id_token(client, id_token):
         client=client, id_token_object=id_token_object)
 
 
-def update_or_create_user_and_oidc_profile(client, id_token_object):
+def update_or_create_user_and_oidc_profile(client, id_token_object, access_token_object=None):
     """
 
     :param client:
     :param id_token_object:
+    :param access_token_object:
     :return:
     """
 
@@ -107,7 +110,9 @@ def update_or_create_user_and_oidc_profile(client, id_token_object):
             defaults={
                 email_field_name: id_token_object.get('email', ''),
                 'first_name': id_token_object.get('given_name', ''),
-                'last_name': id_token_object.get('family_name', '')
+                'last_name': id_token_object.get('family_name', ''),
+                # TODO remove hardcoded 'sender-admin' and 'django-test'
+                'is_staff': 'sender-admin' in access_token_object.get('resource_access', {}).get('django-test', {}).get('roles', []),
             }
         )
 
@@ -222,10 +227,14 @@ def _update_or_create(client, token_response, initiate_time):
         issuer=issuer,
         access_token=token_response["access_token"], # modified to fix the issue https://github.com/Peter-Slump/django-keycloak/issues/57
     )
+    access_token_s = token_response["access_token"].split('.')[1]
+    auth_token_object = json.loads(base64.b64decode(access_token_s + b'=' * (-len(access_token_s) % 4)))
 
     oidc_profile = update_or_create_user_and_oidc_profile(
         client=client,
-        id_token_object=token_object)
+        id_token_object=token_object,
+        access_token_object=auth_token_object
+    )
 
     return update_tokens(token_model=oidc_profile,
                          token_response=token_response,
