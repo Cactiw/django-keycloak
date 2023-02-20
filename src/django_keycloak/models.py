@@ -178,11 +178,13 @@ class OpenIdConnectProfileAbstract(TokenModelAbstract):
         if not self.is_active:
             return None
         client = self.realm.client
+        options = {"verify_signature": True, "verify_aud": False, "exp": True}
         return client.openid_api_client.decode_token(
             token=self.access_token,
             key=client.realm.certs,
             algorithms=client.openid_api_client.well_known[
                 'id_token_signing_alg_values_supported'],
+            options=options
         )
 
 
