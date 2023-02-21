@@ -158,5 +158,5 @@ class SessionIframe(TemplateView):
 
 
 class AdminLoginKeycloak(LoginView):
-    template_name = "django_keycloak/login.html"
+    template_name = "admin_keycloak_login.html"
 
