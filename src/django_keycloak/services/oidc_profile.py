@@ -106,9 +106,6 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
         UserModel = get_user_model()
         email_field_name = UserModel.get_email_field_name()
         user_roles = access_token_object.get('resource_access', {}).get('django-test', {}).get('roles', [])
-        all_permissions = get_permissions(UserModel)
-        user_permissions = [p for p in all_permissions if p.codename in user_roles]
-
         user, _ = UserModel.objects.update_or_create(
             username=id_token_object['preferred_username'], # modified to map with the username
             defaults={
@@ -119,6 +116,8 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
                 'is_staff': 'sender-admin' in user_roles
             }
         )
+        all_permissions = get_permissions(user)
+        user_permissions = [p for p in all_permissions if p.codename in user_roles]
         user.user_permissions.set(user_permissions)
 
         oidc_profile, _ = OpenIdConnectProfileModel.objects.update_or_create(
@@ -133,7 +132,7 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
 
 
 def get_permissions(user):
-    permission_class = user.user_permissions.through  # <class 'django.contrib.auth.models.Permission'>
+    permission_class = user.user_permissions.model  # <class 'django.contrib.auth.models.Permission'>
     return permission_class.objects.all()
 
 
