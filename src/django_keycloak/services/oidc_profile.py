@@ -105,6 +105,10 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
     with transaction.atomic():
         UserModel = get_user_model()
         email_field_name = UserModel.get_email_field_name()
+        user_roles = access_token_object.get('resource_access', {}).get('django-test', {}).get('roles', [])
+        all_permissions = get_permissions(UserModel)
+        user_permissions = [p for p in all_permissions if p.codename in user_roles]
+
         user, _ = UserModel.objects.update_or_create(
             username=id_token_object['preferred_username'], # modified to map with the username
             defaults={
@@ -112,7 +116,8 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
                 'first_name': id_token_object.get('given_name', ''),
                 'last_name': id_token_object.get('family_name', ''),
                 # TODO remove hardcoded 'sender-admin' and 'django-test'
-                'is_staff': 'sender-admin' in access_token_object.get('resource_access', {}).get('django-test', {}).get('roles', []),
+                'is_staff': 'sender-admin' in user_roles,
+                'user_permissions': user_permissions
             }
         )
 
@@ -125,6 +130,13 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
         )
 
     return oidc_profile
+
+
+def get_permissions(user):
+    permission_class = user.user_permissions.model  # <class 'django.contrib.auth.models.Permission'>
+    return permission_class.objects.all()
+
+
 
 
 def get_remote_user_from_profile(oidc_profile):
