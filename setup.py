@@ -16,6 +16,7 @@ setup(
     long_description=README,
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    package_data={'': ['*.html']},
     extras_require={
         'dev': [
             'bumpversion==0.5.3',
