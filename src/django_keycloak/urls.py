@@ -23,5 +23,4 @@ urlpatterns = [
     re_path(r'^logout$', views.Logout.as_view(), name='keycloak_logout'),
     re_path(r'^session-iframe', views.SessionIframe.as_view(),
         name='keycloak_session_iframe'),
-    re_path(r'^admin/login', views.AdminLoginKeycloak.as_view(), name='login')
 ]
