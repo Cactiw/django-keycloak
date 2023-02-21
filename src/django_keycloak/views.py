@@ -24,6 +24,7 @@ from django.views.generic.base import (
     RedirectView,
     TemplateView
 )
+from django.contrib.auth.views import LoginView
 
 from django_keycloak.models import Nonce
 from django_keycloak.auth import remote_user_login
@@ -154,3 +155,8 @@ class SessionIframe(TemplateView):
             cookie_name=getattr(settings, 'KEYCLOAK_SESSION_STATE_COOKIE_NAME',
                                 'session_state')
         )
+
+
+class AdminLoginKeycloak(LoginView):
+    template_name = "django_keycloak/admin/login.html"
+
