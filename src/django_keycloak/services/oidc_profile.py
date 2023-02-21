@@ -116,10 +116,10 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
                 'first_name': id_token_object.get('given_name', ''),
                 'last_name': id_token_object.get('family_name', ''),
                 # TODO remove hardcoded 'sender-admin' and 'django-test'
-                'is_staff': 'sender-admin' in user_roles,
-                'user_permissions': user_permissions
+                'is_staff': 'sender-admin' in user_roles
             }
         )
+        user.user_permissions.set(user_permissions)
 
         oidc_profile, _ = OpenIdConnectProfileModel.objects.update_or_create(
             sub=id_token_object['sub'],
