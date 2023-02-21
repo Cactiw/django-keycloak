@@ -133,7 +133,7 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
 
 
 def get_permissions(user):
-    permission_class = user.user_permissions.model  # <class 'django.contrib.auth.models.Permission'>
+    permission_class = user.user_permissions.through  # <class 'django.contrib.auth.models.Permission'>
     return permission_class.objects.all()
 
 
