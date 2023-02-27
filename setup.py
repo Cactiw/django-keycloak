@@ -16,6 +16,7 @@ setup(
     long_description=README,
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    # package_data={'': ['templates/*.html', 'templates/*.css']},
     package_data={'': ['templates/*.html']},
     extras_require={
         'dev': [
