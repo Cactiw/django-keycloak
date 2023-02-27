@@ -105,15 +105,14 @@ def update_or_create_user_and_oidc_profile(client, id_token_object, access_token
     with transaction.atomic():
         UserModel = get_user_model()
         email_field_name = UserModel.get_email_field_name()
-        user_roles = access_token_object.get('resource_access', {}).get('django-test', {}).get('roles', [])
+        user_roles = access_token_object.get('resource_access', {}).get(settings.KEYCLOAK_API_CLIENT_NAME, {}).get('roles', [])
         user, _ = UserModel.objects.update_or_create(
             username=id_token_object['preferred_username'], # modified to map with the username
             defaults={
                 email_field_name: id_token_object.get('email', ''),
                 'first_name': id_token_object.get('given_name', ''),
                 'last_name': id_token_object.get('family_name', ''),
-                # TODO remove hardcoded 'sender-admin' and 'django-test'
-                'is_staff': 'sender-admin' in user_roles
+                'is_staff': settings.KEYCLOAK_ADMIN_ROLE_NAME in user_roles
             }
         )
         all_permissions = get_permissions(user)
