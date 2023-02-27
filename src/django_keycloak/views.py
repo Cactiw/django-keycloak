@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import logging
 
-from django.shortcuts import resolve_url
+from django.shortcuts import resolve_url, redirect
 
 from django_keycloak.services.oidc_profile import get_remote_user_model
 
@@ -160,3 +160,7 @@ class SessionIframe(TemplateView):
 class AdminLoginKeycloak(LoginView):
     template_name = "admin_keycloak_login.html"
 
+
+def admin_keycloak_logout(request):
+    logout(request)
+    return redirect(reverse("keycloak_logout"))
