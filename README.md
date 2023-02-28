@@ -1,120 +1,79 @@
-===============
 Django Keycloak
 ===============
 
-.. image:: https://www.travis-ci.org/Peter-Slump/django-keycloak.svg?branch=master
-   :target: https://www.travis-ci.org/Peter-Slump/django-keycloak
-   :alt: Build Status
-.. image:: https://readthedocs.org/projects/django-keycloak/badge/?version=latest
-   :target: http://django-keycloak.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
-.. image:: https://codecov.io/gh/Peter-Slump/django-keycloak/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/Peter-Slump/django-keycloak
-   :alt: codecov
-.. image:: https://api.codeclimate.com/v1/badges/eb19f47dc03dec40cea7/maintainability
-   :target: https://codeclimate.com/github/Peter-Slump/django-keycloak/maintainability
-   :alt: Maintainability
+Django app to add Keycloak support to your project.
 
-Django app to add Keycloak  support to your project.
+This fork fixes some bugs and allows you to use KeyCloak to login to the Django admin panel.
 
-`Read documentation <http://django-keycloak.readthedocs.io/en/latest/>`_
-
-http://www.keycloak.org/
-
-An showcase/demo project is added in the `example folder <example/README.md>`_.
-
-Development
+Prerequisites
 ===========
+You must create a KeyCloak client, enable "Service Account" setting, set access type to "Confidential", 
+set correct login redirect URL and generate client secret.
 
-Install development environment:
-
-.. code:: bash
-
-  $ make install-python
-
-------------
-Writing docs
-------------
-
-Documentation is written using Sphinx and maintained in the docs folder.
-
-To make it easy to write docs Docker support is available.
-
-First build the Docker container:
-
-.. code:: bash
-
-    $ docker build . -f DockerfileDocs -t django-keycloak-docs
-
-Run the container
-
-.. code:: bash
-
-    $ docker run -v `pwd`:/src --rm -t -i -p 8050:8050 django-keycloak-docs
-
-Go in the browser to http://localhost:8050 and view the documentation which get
-refreshed and updated on every update in the documentation source.
-
---------------
-Create release
---------------
-
-.. code:: bash
-
-    $ git checkout master
-    $ git pull
-    $ bumpversion release
-    $ make deploy-pypi
-    $ bumpversion --no-tag patch
-    $ git push origin master --tags
-
-Release Notes
-=============
-
-**unreleased**
-
-**v0.2.4**
-
-* Fixed refresh token expiration date exists
+Client must have the following roles:
+1. ```manage-accounts```
+2. ```view-profile```
 
 
-**v0.2.3**
+Installation
+===========
+1. Add package to the project
+    
+    ```poetry add git+https://github.com/Cactiw/django-keycloak.git#tk-keycloak```
+2. Add application to Django INSTALLED_APPS, MIDDLEWARE, AUTHENTICATION_BACKENDS in ```settings.py```
+    ```python3
+    INSTALLED_APPS = [
+        ...
+        "django_keycloak.apps.KeycloakAppConfig"
+    ]
+   
+   MIDDLEWARE = [
+         ...
+        "django_keycloak.middleware.BaseKeycloakMiddleware",
+    ]
+    AUTHENTICATION_BACKENDS = [
+        # Must be presented to keep ability to login through standard Django account.
+        "django.contrib.auth.backends.ModelBackend",
+        
+        # Keycloak backend
+        "django_keycloak.auth.backends.KeycloakAuthorizationCodeBackend",
+    ]
+   ```
+3. Add following parameters to ```settings.py```:
+   ```python3
+   KEYCLOAK_OIDC_PROFILE_MODEL = 'django_keycloak.OpenIdConnectProfile'
+   LOGIN_REDIRECT_URL = "/admin"
+   LOGOUT_REDIRECT_URL = "/admin"
 
-* Fixed ENTTITLMENT issue by commenting the code temporarily, till fully fixed
-* https://issues.redhat.com/browse/KEYCLOAK-8353
+   # Role name that grants admin access.
+   # Users that have this role will have access to admin page.
+   KEYCLOAK_ADMIN_ROLE_NAME = "sender-admin"
+   
+   # Specify KeyCloak client name.
+   # It is required to get permissions for Users for this client.
+   KEYCLOAK_API_CLIENT_NAME = "django-test"
+   ```
+4. Add following urls to ```urls.py```: 
+   ```python3
+   import django_keycloak.views
+   
+   urlpatterns = [
+       # Redirect to KeyKloak login and logout pages.\
+       # Place this lines above admin urls definitions for correct override.
+       re_path(r'^admin/login/$', django_keycloak.views.AdminLoginKeycloak.as_view(), name='login'),
+       re_path(r'^admin/logout/$', django_keycloak.views.admin_keycloak_logout, name='logout'),
+   
+       path("admin/", admin.site.urls),
+       re_path(r'^keycloak/', include('django_keycloak.urls')),
+   ]
+   ```
+5. Make django-keycloak migrations: ```python manage.py migrate django_keycloak```.
+You can roll back these migrations with ```python manage.py migrate django_keycloak zero```
+6. Login through root Django account to admin page.
+7. Add KeyCloak server and Realm.
+8. For created Realm perform "Refresh OpenID Connect .well-known" action.
+9. For created Realm perform "Synchronize permissions" action. 
+KeyCloak client must have "manage-users" permission to do this! 
+This action can take several minutes depending on your Django models count.
+10. You can read more about steps 6-8 in the documentation: https://django-keycloak.readthedocs.io/en/latest/scenario/initial_setup.html
 
-**v0.2.2**
-
-* Fixed issue by adding migration file to repo
-
-**v0.2.1**
-
-* Added a feature to use redirect url after successful login using settings.LOGIN_REDIRECT_URL
-
-**v0.2.0**
-
-* Added support for Python 3.9 & Django 4.1
-* Fixed integration issues with keycloak > v4
-    * https://github.com/Peter-Slump/django-keycloak/issues/57
-    * https://github.com/Peter-Slump/django-keycloak/issues/18
-    * https://github.com/oauth2-proxy/oauth2-proxy/issues/1448
-* Updated documentation.
-
-**v0.1.2-dev**
-
-**v0.1.1**
-
-* Added support for remote user. Handling identities without registering a User
-  model. (thanks to `bossan <https://github.com/bossan>`_)
-* Addes support for permissions using resources and scopes.
-  (thanks to `bossan <https://github.com/bossan>`_)
-* Added example project.
-* Updated documentation.
-
-**v0.1.0**
-
-* Correctly extract email field name on UserModel (thanks to `swist <https://github.com/swist>`_)
-* Add support for Oauth2 Token Exchange to exchange tokens with remote clients.
-  Handy when using multiple applications with different clients which have to
-  communicate with each other.
-* Support for session iframe

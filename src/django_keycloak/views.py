@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import logging
 
-from django.shortcuts import resolve_url
+from django.shortcuts import resolve_url, redirect
 
 from django_keycloak.services.oidc_profile import get_remote_user_model
 
@@ -24,6 +24,7 @@ from django.views.generic.base import (
     RedirectView,
     TemplateView
 )
+from django.contrib.auth.views import LoginView
 
 from django_keycloak.models import Nonce
 from django_keycloak.auth import remote_user_login
@@ -154,3 +155,12 @@ class SessionIframe(TemplateView):
             cookie_name=getattr(settings, 'KEYCLOAK_SESSION_STATE_COOKIE_NAME',
                                 'session_state')
         )
+
+
+class AdminLoginKeycloak(LoginView):
+    template_name = "admin_keycloak_login.html"
+
+
+def admin_keycloak_logout(request):
+    logout(request)
+    return redirect(reverse("keycloak_logout"))

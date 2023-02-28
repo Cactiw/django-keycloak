@@ -1,3 +1,5 @@
+import base64
+import json
 from datetime import timedelta
 
 import logging
@@ -75,11 +77,12 @@ def get_or_create_from_id_token(client, id_token):
         client=client, id_token_object=id_token_object)
 
 
-def update_or_create_user_and_oidc_profile(client, id_token_object):
+def update_or_create_user_and_oidc_profile(client, id_token_object, access_token_object=None):
     """
 
     :param client:
     :param id_token_object:
+    :param access_token_object:
     :return:
     """
 
@@ -102,14 +105,19 @@ def update_or_create_user_and_oidc_profile(client, id_token_object):
     with transaction.atomic():
         UserModel = get_user_model()
         email_field_name = UserModel.get_email_field_name()
+        user_roles = access_token_object.get('resource_access', {}).get(settings.KEYCLOAK_API_CLIENT_NAME, {}).get('roles', [])
         user, _ = UserModel.objects.update_or_create(
             username=id_token_object['preferred_username'], # modified to map with the username
             defaults={
                 email_field_name: id_token_object.get('email', ''),
                 'first_name': id_token_object.get('given_name', ''),
-                'last_name': id_token_object.get('family_name', '')
+                'last_name': id_token_object.get('family_name', ''),
+                'is_staff': settings.KEYCLOAK_ADMIN_ROLE_NAME in user_roles
             }
         )
+        all_permissions = get_permissions(user)
+        user_permissions = [p for p in all_permissions if p.codename in user_roles]
+        user.user_permissions.set(user_permissions)
 
         oidc_profile, _ = OpenIdConnectProfileModel.objects.update_or_create(
             sub=id_token_object['sub'],
@@ -120,6 +128,13 @@ def update_or_create_user_and_oidc_profile(client, id_token_object):
         )
 
     return oidc_profile
+
+
+def get_permissions(user):
+    permission_class = user.user_permissions.model  # <class 'django.contrib.auth.models.Permission'>
+    return permission_class.objects.all()
+
+
 
 
 def get_remote_user_from_profile(oidc_profile):
@@ -222,10 +237,14 @@ def _update_or_create(client, token_response, initiate_time):
         issuer=issuer,
         access_token=token_response["access_token"], # modified to fix the issue https://github.com/Peter-Slump/django-keycloak/issues/57
     )
+    access_token_s = token_response["access_token"].split('.')[1]
+    auth_token_object = json.loads(base64.b64decode(access_token_s + '=' * (-len(access_token_s) % 4)))
 
     oidc_profile = update_or_create_user_and_oidc_profile(
         client=client,
-        id_token_object=token_object)
+        id_token_object=token_object,
+        access_token_object=auth_token_object
+    )
 
     return update_tokens(token_model=oidc_profile,
                          token_response=token_response,
@@ -248,7 +267,10 @@ def update_tokens(token_model, token_response, initiate_time):
 
     token_model.access_token = token_response['access_token']
     token_model.expires_before = expires_before
-    token_model.refresh_token = token_response['refresh_token']
+    if 'refresh_token' in token_response:
+        token_model.refresh_token = token_response['refresh_token']
+    else:
+        token_model.refresh_token = token_response['id_token']
     token_model.refresh_expires_before = refresh_expires_before
 
     token_model.save(update_fields=['access_token',
