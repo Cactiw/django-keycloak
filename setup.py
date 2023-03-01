@@ -30,11 +30,11 @@ setup(
     },
     setup_requires=[
         'pytest-runner',
-        'python-keycloak-client-pkg==0.3.0',
+        'python-keycloak-client @ git+https://github.com/Cactiw/python-keycloak-client.git@master',
     ],
     
     install_requires=[
-        'python-keycloak-client-pkg==0.3.0',
+        'python-keycloak-client @ git+https://github.com/Cactiw/python-keycloak-client.git@master',
         'Django>=4.1',
     ],
     tests_require=[
