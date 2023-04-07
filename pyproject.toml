@@ -1,6 +1,6 @@
-[build-system]
-requires = ["setuptools>=61.0", "python-keycloak-client @ git+https://github.com/Cactiw/python-keycloak-client.git", "Django>=4.1"]
-build-backend = "setuptools.build_meta"
+#[build-system]
+#requires = ["setuptools>=61.0", "python-keycloak-client", "Django>=4.1"]
+#build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-keycloak-pkg"
